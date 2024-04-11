@@ -1,15 +1,63 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/rohot20001221/ws-server/server"
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
+	"github.com/rohot20001221/ws-server/epoll"
 )
 
-func main() {
-	wsServer := server.CreateServer()
+var epoller *epoll.Epoll
 
-	http.Handle("/ws", websocket.Handler(wsServer.HandleWS))
+func main() {
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{
+			CheckOrigin: websocket.IsWebSocketUpgrade,
+		}
+		conn, err := upgrader.Upgrade(w, r, nil)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err := epoller.Add(conn); err != nil {
+			conn.Close()
+		}
+	})
+
+	var err error
+	epoller, err = epoll.CreateEpoll()
+	if err != nil {
+		panic(err)
+	}
+
+	go StartEventLoop()
+
 	http.ListenAndServe(":3000", nil)
+}
+
+func StartEventLoop() {
+	for {
+		connections, err := epoller.Wait()
+		if err != nil {
+			continue
+		}
+
+		for _, conn := range connections {
+			if conn == nil {
+				break
+			}
+
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				epoller.Remove(conn)
+
+				conn.Close()
+			} else {
+				fmt.Println(string(msg))
+			}
+		}
+	}
 }
