@@ -1,4 +1,4 @@
-module github.com/rohot20001221/ws-server
+module github.com/rohit20001221/ws-server
 
 go 1.22.1
 

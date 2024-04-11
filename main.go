@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/rohot20001221/ws-server/epoll"
+	"github.com/rohit20001221/ws-server/epoll"
 )
 
 var epoller *epoll.Epoll
